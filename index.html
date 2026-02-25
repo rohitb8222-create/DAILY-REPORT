@@ -3,80 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWM Live Analytics | </title>
+    <title>Sumeet Elko | SWM Analytics Pro</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        * { font-family: 'Poppins', sans-serif; }
-        body { background: #f4f7f6; color: #1e293b; }
-        .sidebar { background: #0f172a; color: white; height: 100vh; position: fixed; width: 280px; padding: 20px; z-index: 1000; }
-        .main-content { margin-left: 280px; padding: 30px; width: calc(100% - 280px); }
-        .glass-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; border: none; }
-        .stat-val { font-size: 1.8rem; font-weight: 700; color: #059669; }
-        @media print { .sidebar { display: none; } .main-content { margin-left: 0; width: 100%; } }
+        * { font-family: 'Poppins', sans-serif; transition: all 0.2s ease; }
+        body { background: #f0f4f8; color: #1e293b; }
+        .sidebar { background: #0f172a; color: white; height: 100vh; position: fixed; width: 300px; padding: 25px; z-index: 1000; overflow-y: auto; }
+        .main-content { margin-left: 300px; padding: 35px; }
+        .glass-card { background: white; border-radius: 20px; padding: 25px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.03); margin-bottom: 25px; }
+        .stat-card { border-left: 6px solid #3b82f6; }
+        .val-big { font-size: 2rem; font-weight: 700; color: #0f172a; line-height: 1; }
+        .filter-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+        .custom-select { background: #1e293b; color: white; border: 1px solid #334155; border-radius: 10px; font-size: 13px; margin-bottom: 15px; }
+        .table-container { border-radius: 15px; overflow: hidden; background: white; }
+        .scroll-area { max-height: 400px; overflow-y: auto; }
+        th { background: #f8fafc !important; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 15px !important; }
+        #loader { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 9999; color: white; flex-direction: column; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
 
+<div id="loader">
+    <div class="spinner-border text-info mb-3"></div>
+    <h5>डेटा अपडेट होत आहे...</h5>
+</div>
+
 <div class="sidebar d-print-none">
-    <h4 class="text-info fw-bold">SWM LIVE PRO</h4>
-    <p class="small text-white-50">Shivam Bhandari Analytics</p>
-    <hr>
-    <label class="small fw-bold text-uppercase opacity-50">Filters</label>
-    <input type="date" id="dateFilter" class="form-control form-control-sm bg-dark text-white border-secondary mb-3">
-    <select id="wardFilter" class="form-select form-select-sm bg-dark text-white border-secondary mb-3">
-        <option value="">सर्व वॉर्ड</option>
+    <h4 class="fw-bold text-info mb-1">SUMEET ELKO</h4>
+    <p class="small text-white-50 mb-4">Live Analytics Dashboard</p>
+    
+    <label class="filter-label">तारीख फिल्टर</label>
+    <input type="date" id="dateFilter" class="form-control form-control-sm custom-select">
+
+    <label class="filter-label">वॉर्ड निवडा</label>
+    <select id="wardFilter" class="form-select form-select-sm custom-select">
+        <option value="">सर्व वॉर्ड (All Wards)</option>
     </select>
+
+    <label class="filter-label">शिफ्ट निवडा</label>
+    <select id="shiftFilter" class="form-select form-select-sm custom-select">
+        <option value="">सर्व शिफ्ट (All)</option>
+        <option value="A">Shift A</option>
+        <option value="B">Shift B</option>
+        <option value="C">Shift C</option>
+    </select>
+
+    <hr class="opacity-25 my-4">
     <button class="btn btn-info w-100 mb-2 fw-bold" onclick="fetchData()">🔄 डेटा रिफ्रेश करा</button>
-    <button class="btn btn-danger w-100 fw-bold" onclick="downloadPDF()">📄 PDF रिपोर्ट</button>
+    <button class="btn btn-danger w-100 mb-3 fw-bold" onclick="downloadPDF()">📄 PDF रिपोर्ट</button>
 </div>
 
 <div class="main-content">
-    <div id="reportArea">
+    <div id="captureArea">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>SWM Daily Performance</h3>
-            <span id="liveStatus" class="badge bg-success">Live from Google Sheets</span>
+            <div>
+                <h2 class="fw-bold m-0">SWM Performance Dashboard</h2>
+                <p class="text-muted m-0">Sumeet Elko | Analytics Report</p>
+            </div>
+            <div id="recCount" class="badge bg-dark px-3 py-2 rounded-pill">0 Records Found</div>
         </div>
 
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="glass-card text-center border-start border-4 border-success">
-                    <p class="text-muted mb-1 fw-bold">TOTAL WET WASTE</p>
-                    <div id="totalWet" class="stat-val">0.00</div>
-                    <small>Metric Tons (MT)</small>
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="glass-card stat-card">
+                    <span class="filter-label">Total Net Tonnage</span>
+                    <div id="txtNet" class="val-big">0.00</div>
+                    <span class="unit">Metric Tons (MT)</span>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="glass-card text-center border-start border-4 border-primary">
-                    <p class="text-muted mb-1 fw-bold">TOTAL NET TONNAGE</p>
-                    <div id="totalNet" class="stat-val text-primary">0.00</div>
-                    <small>Metric Tons (MT)</small>
+            <div class="col-md-4">
+                <div class="glass-card stat-card" style="border-left-color: #10b981;">
+                    <span class="filter-label text-success">Wet Waste</span>
+                    <div id="txtWetMT" class="val-big text-success">0.00</div>
+                    <span class="unit">MT संकलित</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card stat-card" style="border-left-color: #f59e0b;">
+                    <span class="filter-label text-warning">Total Vehicles</span>
+                    <div id="txtVehCount" class="val-big text-warning">0</div>
+                    <span class="unit">Active Units</span>
                 </div>
             </div>
         </div>
 
-        <div class="glass-card">
-            <canvas id="liveChart" height="100"></canvas>
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="glass-card">
+                    <h6 class="fw-bold text-muted small mb-4">WARD-WISE TONNAGE ANALYSIS</h6>
+                    <canvas id="barChart" height="150"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="glass-card">
+                    <h6 class="fw-bold text-muted small mb-4">WASTE RATIO</h6>
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
         </div>
 
-        <div class="glass-card p-0">
-            <table class="table table-hover m-0" id="dataTable">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Ward</th>
-                        <th>Vehicle</th>
-                        <th>Net (MT)</th>
-                        <th>Type</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+        <div class="table-container glass-card p-0 overflow-hidden">
+            <div class="p-3 bg-light border-bottom">
+                <h6 class="fw-bold m-0 small">DETAILED LOGS (NET CALCULATION)</h6>
+            </div>
+            <div class="scroll-area">
+                <table class="table table-hover mb-0" id="mainTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Ward</th>
+                            <th>Vehicle No</th>
+                            <th>Gross (kg)</th>
+                            <th>Tare (kg)</th>
+                            <th>Net (MT)</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -84,103 +136,139 @@
 <script>
     // तुमची गुगल शीट CSV लिंक इथे टाका
     const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTdHHQ9sR7MQheZVCwExTeO2E8MTSG4agRIrVlzsg1xY9cyalOj6a2RCvN9aYjCEFUIJH6sv9lQwHSE/pubhtml'; 
-    let masterData = [];
-    let myChart = null;
+    let db = [];
+    let appCharts = {};
 
     async function fetchData() {
+        showLoad(true);
         Papa.parse(sheetURL, {
             download: true,
             header: true,
+            skipEmptyLines: true,
             complete: function(results) {
-                masterData = results.data;
-                updateUI();
+                db = results.data;
+                populateWardDropdown();
+                applyFilters();
+                showLoad(false);
             }
         });
     }
 
-    function updateUI() {
-        const filterDate = document.getElementById('dateFilter').value;
-        const filterWard = document.getElementById('wardFilter').value;
-        
-        const tbody = document.querySelector("#dataTable tbody");
+    function populateWardDropdown() {
+        const select = document.getElementById('wardFilter');
+        const currentVal = select.value;
+        const wards = [...new Set(db.map(row => String(row.WARD || "").trim()))].filter(Boolean).sort();
+        select.innerHTML = '<option value="">सर्व वॉर्ड (All Wards)</option>';
+        wards.forEach(w => select.innerHTML += `<option value="${w}">${w}</option>`);
+        select.value = currentVal;
+    }
+
+    function applyFilters() {
+        const fDate = document.getElementById('dateFilter').value;
+        const fWard = document.getElementById('wardFilter').value;
+        const fShift = document.getElementById('shiftFilter').value;
+
+        // Date format matching logic
+        let targetDate = fDate ? fDate.split('-').reverse().join('-') : "";
+
+        const filtered = db.filter(row => {
+            const rDate = String(row.DATE || "");
+            const rWard = String(row.WARD || "").trim();
+            const rShift = String(row.SHIFT || "").toUpperCase();
+
+            const matchDate = !targetDate || rDate.includes(targetDate);
+            const matchWard = !fWard || rWard === fWard;
+            const matchShift = !fShift || rShift === fShift;
+
+            return matchDate && matchWard && matchShift;
+        });
+
+        document.getElementById('recCount').innerText = filtered.length + " Records Found";
+        renderDashboard(filtered);
+    }
+
+    function renderDashboard(data) {
+        let nTotal = 0, nWet = 0, nDry = 0, nMix = 0;
+        let vehList = new Set();
+        const wardStats = {};
+        const tbody = document.querySelector("#mainTable tbody");
         tbody.innerHTML = "";
-        let wetSum = 0;
-        let netSum = 0;
-        let chartLabels = [];
-        let chartData = [];
 
-        // वॉर्ड ड्रॉपडाऊन अपडेट (फक्त एकदा)
-        if(document.getElementById('wardFilter').options.length <= 1) {
-            const wards = [...new Set(masterData.map(r => r.WARD))].filter(Boolean);
-            wards.forEach(w => {
-                let opt = new Option(w, w);
-                document.getElementById('wardFilter').add(opt);
-            });
-        }
+        data.forEach(row => {
+            const g = parseFloat(String(row['GROSS WEIGHT']).replace(/,/g, '')) || 0;
+            const t = parseFloat(String(row['TARE WEIGHT']).replace(/,/g, '')) || 0;
+            const net = (g - t) / 1000;
+            const w = String(row.WARD || "N/A").trim();
+            const type = String(row.SEGRGATION || "MIX").toUpperCase();
 
-        masterData.forEach(row => {
-            if(!row.DATE) return;
+            nTotal += net;
+            vehList.add(row.VEHICLENUMBER);
+            if(!wardStats[w]) wardStats[w] = { W: 0, D: 0, M: 0 };
             
-            // डेटा मॅचिंग
-            const matchDate = !filterDate || row.DATE.includes(filterDate.split('-').reverse().join('-'));
-            const matchWard = !filterWard || row.WARD === filterWard;
+            if(type.includes("WET")) { nWet += net; wardStats[w].W += net; }
+            else if(type.includes("DRY")) { nDry += net; wardStats[w].D += net; }
+            else { nMix += net; wardStats[w].M += net; }
 
-            if(matchDate && matchWard) {
-                const g = parseFloat(row.GROSS_WEIGHT) || 0;
-                const t = parseFloat(row.TARE_WEIGHT) || 0;
-                const net = (g - t) / 1000;
-                const type = (row.SEGRGATION || "").toUpperCase();
-
-                netSum += net;
-                if(type.includes("WET")) wetSum += net;
-
-                tbody.innerHTML += `<tr>
-                    <td>${row.DATE}</td>
-                    <td>${row.WARD}</td>
-                    <td>${row.VEHICLENUMBER}</td>
-                    <td class="fw-bold text-primary">${net.toFixed(2)}</td>
-                    <td><span class="badge ${type.includes('WET')?'bg-success':'bg-secondary'}">${type}</span></td>
-                </tr>`;
-                
-                chartLabels.push(row.VEHICLENUMBER);
-                chartData.push(net);
-            }
+            tbody.innerHTML += `<tr>
+                <td>${row.DATE}</td>
+                <td><b>${w}</b></td>
+                <td>${row.VEHICLENUMBER}</td>
+                <td>${g}</td>
+                <td>${t}</td>
+                <td class="text-primary fw-bold">${net.toFixed(2)}</td>
+                <td><span class="badge ${type.includes('WET')?'bg-success':type.includes('DRY')?'bg-warning':'bg-secondary'}">${type}</span></td>
+            </tr>`;
         });
 
-        document.getElementById('totalWet').innerText = wetSum.toFixed(2);
-        document.getElementById('totalNet').innerText = netSum.toFixed(2);
-        updateChart(chartLabels, chartData);
+        document.getElementById('txtNet').innerText = nTotal.toFixed(2);
+        document.getElementById('txtWetMT').innerText = nWet.toFixed(2);
+        document.getElementById('txtVehCount').innerText = vehList.size;
+
+        drawCharts(wardStats, nWet, nDry, nMix);
     }
 
-    function updateChart(labels, data) {
-        if(myChart) myChart.destroy();
-        const ctx = document.getElementById('liveChart').getContext('2d');
-        myChart = new Chart(ctx, {
+    function drawCharts(wards, wet, dry, mix) {
+        Object.values(appCharts).forEach(c => c.destroy());
+        const labels = Object.keys(wards).sort();
+
+        appCharts.bar = new Chart(document.getElementById('barChart'), {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{ label: 'Vehicle-wise Net MT', data: data, backgroundColor: '#3b82f6' }]
+                datasets: [
+                    { label: 'Wet (MT)', data: labels.map(l => wards[l].W), backgroundColor: '#10b981' },
+                    { label: 'Dry (MT)', data: labels.map(l => wards[l].D), backgroundColor: '#f59e0b' },
+                    { label: 'Mix (MT)', data: labels.map(l => wards[l].M), backgroundColor: '#94a3b8' }
+                ]
             },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
+        });
+
+        appCharts.pie = new Chart(document.getElementById('pieChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Wet', 'Dry', 'Mix'],
+                datasets: [{ data: [wet, dry, mix], backgroundColor: ['#10b981', '#f59e0b', '#94a3b8'] }]
+            },
+            options: { cutout: '70%' }
         });
     }
 
     function downloadPDF() {
-        const element = document.getElementById('reportArea');
-        const opt = {
-            margin: 0.5,
-            filename: `SWM_Report_${new Date().toLocaleDateString()}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+        const element = document.getElementById('captureArea');
+        html2pdf().from(element).set({
+            margin: 0.3,
+            filename: 'Sumeet_Elko_SWM_Report.pdf',
+            html2canvas: { scale: 2 },
             jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save();
+        }).save();
     }
 
-    // ऑटो लोड
+    function showLoad(s) { document.getElementById('loader').style.display = s ? 'flex' : 'none'; }
+
     window.onload = fetchData;
-    document.getElementById('dateFilter').addEventListener('change', updateUI);
-    document.getElementById('wardFilter').addEventListener('change', updateUI);
+    document.querySelectorAll('.form-control, .form-select').forEach(el => el.addEventListener('change', applyFilters));
 </script>
+
 </body>
 </html>
